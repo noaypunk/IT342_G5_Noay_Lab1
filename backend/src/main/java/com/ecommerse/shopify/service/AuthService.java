@@ -17,11 +17,16 @@ public class AuthService {
         return userRepository.save(user);
     }
 
-    public String loginUser(String email, String password) {
-        Optional<User> user = userRepository.findByEmail(email);
-        if (user.isPresent() && user.get().getPassword_hash().equals(password)) {
-            return "Login Successful!";
-        }
-        return "Invalid email or password";
+    public String login(String username, String rawPassword) {
+    // Search by username instead of email
+    User user = userRepository.findByUsername(username);
+    
+    // Using simple string comparison since we skipped encryption for now
+    if (user != null && user.getPassword_hash().equals(rawPassword)) {
+        user.setLast_login(java.time.LocalDateTime.now());
+        userRepository.save(user);
+        return "Login Successful!";
     }
+    return "Invalid credentials!";
+}
 }

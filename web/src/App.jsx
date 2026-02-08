@@ -31,10 +31,14 @@ function App() {
     e.preventDefault();
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
     
-    // Simplified payload: Always send 'password'. Java will map it to 'password_hash'.
+    // NEW LOGIC: Login sends username, Register sends everything
     const payload = isLogin 
-      ? { email: formData.email, password: formData.password }
-      : { username: formData.username, email: formData.email, password: formData.password };
+      ? { username: formData.username, password: formData.password }
+      : { 
+          username: formData.username, 
+          email: formData.email, 
+          password: formData.password 
+        };
 
     try {
       const response = await axios.post(`http://localhost:8080${endpoint}`, payload);
@@ -42,10 +46,11 @@ function App() {
       const data = response.data;
       const isSuccess = typeof data === 'string' 
         ? data.toLowerCase().includes("successful") 
-        : !!data; // If it's an object, assume success
+        : !!data;
 
       if (isLogin && isSuccess) {
-        const userDetails = users.find(u => u.email === formData.email) || { email: formData.email };
+        // Find user by username now instead of email
+        const userDetails = users.find(u => u.username === formData.username) || { username: formData.username };
         localStorage.setItem('app_user', JSON.stringify(userDetails));
         setLoggedInUser(userDetails);
         setView('dashboard');
@@ -53,7 +58,8 @@ function App() {
         alert(typeof data === 'string' ? data : "Success!");
         if (!isLogin) {
           setIsLogin(true);
-          fetchUsers();
+          // Refresh list so the new user is available for the 'find' logic above
+          fetchUsers(); 
         }
       }
     } catch (error) {
@@ -74,24 +80,28 @@ function App() {
         <div className="card">
           <h2>{isLogin ? 'Login' : 'Register'}</h2>
           <form onSubmit={handleSubmit}>
+            {/* Username is now always required (Login and Register) */}
+            <input 
+              className="input-field"
+              type="text" 
+              placeholder="Username"
+              value={formData.username}
+              required 
+              onChange={(e) => setFormData({...formData, username: e.target.value})} 
+            />
+            
+            {/* Email only shows during Registration */}
             {!isLogin && (
               <input 
                 className="input-field"
-                type="text" 
-                placeholder="Username"
-                value={formData.username}
+                type="email" 
+                placeholder="Email"
+                value={formData.email}
                 required 
-                onChange={(e) => setFormData({...formData, username: e.target.value})} 
+                onChange={(e) => setFormData({...formData, email: e.target.value})} 
               />
             )}
-            <input 
-              className="input-field"
-              type="email" 
-              placeholder="Email"
-              value={formData.email}
-              required 
-              onChange={(e) => setFormData({...formData, email: e.target.value})} 
-            />
+
             <input 
               className="input-field"
               type="password" 
@@ -127,13 +137,13 @@ function App() {
         {view === 'dashboard' ? (
           <div>
             <h1>🏠 Dashboard</h1>
-            <p>Welcome back, <strong>{loggedInUser?.username || loggedInUser?.email}</strong>!</p>
+            <p>Welcome back, <strong>{loggedInUser?.username}</strong>!</p>
           </div>
         ) : (
           <div>
             <h1>👤 Profile</h1>
             <p><strong>Username:</strong> {loggedInUser?.username || "N/A"}</p>
-            <p><strong>Email:</strong> {loggedInUser?.email}</p>
+            <p><strong>Email:</strong> {loggedInUser?.email || "N/A"}</p>
             <p><strong>Status:</strong> <span style={{color: 'green'}}>{loggedInUser?.status || "ACTIVE"}</span></p>
             {loggedInUser?.created_at && (
                 <p><strong>Member Since:</strong> {new Date(loggedInUser.created_at).toLocaleDateString()}</p>

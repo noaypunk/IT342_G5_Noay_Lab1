@@ -11,10 +11,10 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long user_id;
-
-    private String username;
     
     @Column(unique = true, nullable = false)
+    private String username;
+    
     private String email;
 
     // This annotation allows React to send "password" while Java stores it as "password_hash"

@@ -26,7 +26,7 @@ public class AuthController {
     @PostMapping("/login")
     public String login(@RequestBody User user) {
         // This returns the string "Login Successful!" or "Invalid..." from your Service
-        return authService.loginUser(user.getEmail(), user.getPassword_hash());
+        return authService.login(user.getUsername(), user.getPassword_hash());
     }
 
     // New endpoint to help you check the users from React or Browser
