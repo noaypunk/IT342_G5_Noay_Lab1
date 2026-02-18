@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    LoginScreen()
+                    AuthScreen()
                 }
             }
         }
@@ -34,24 +34,31 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun LoginScreen() {
-    // 1. State for input fields (like useState in React)
+fun AuthScreen() {
+    // State to toggle between Login and Register
+    var isLogin by remember { mutableStateOf(true) }
+
+    // Form fields
     var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(text = "Welcome to Buspay", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            text = if (isLogin) "Login to Buspay" else "Create Account",
+            style = MaterialTheme.typography.headlineMedium
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Username Field
         TextField(
             value = username,
             onValueChange = { username = it },
@@ -59,8 +66,20 @@ fun LoginScreen() {
             modifier = Modifier.fillMaxWidth()
         )
 
+        // Email Field (Only show during Registration)
+        if (!isLogin) {
+            Spacer(modifier = Modifier.height(8.dp))
+            TextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Password Field
         TextField(
             value = password,
             onValueChange = { password = it },
@@ -73,28 +92,44 @@ fun LoginScreen() {
 
         Button(
             onClick = {
-                // 2. Launching the backend call
                 scope.launch {
                     try {
-                        val response = RetrofitClient.instance.loginUser(
-                            LoginRequest(username, password)
-                        )
-
-                        if (response.isSuccessful) {
-                            val user = response.body()
-                            Toast.makeText(context, "Login Successful! Hi ${user?.username}", Toast.LENGTH_LONG).show()
-                            // TODO: Navigate to Shop/Dashboard
+                        if (isLogin) {
+                            // Login Logic
+                            val response = RetrofitClient.instance.loginUser(LoginRequest(username, password))
+                            if (response.isSuccessful) {
+                                Toast.makeText(context, "Welcome back!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "Login Failed", Toast.LENGTH_SHORT).show()
+                            }
                         } else {
-                            Toast.makeText(context, "Login Failed: Invalid Credentials", Toast.LENGTH_SHORT).show()
+                            // Registration Logic
+                            val regData = mapOf(
+                                "username" to username,
+                                "email" to email,
+                                "password" to password
+                            )
+                            val response = RetrofitClient.instance.registerUser(regData)
+                            if (response.isSuccessful) {
+                                Toast.makeText(context, "Registered Successfully! Please Login.", Toast.LENGTH_LONG).show()
+                                isLogin = true // Switch back to login after success
+                            } else {
+                                Toast.makeText(context, "Registration Failed: ${response.message()}", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Network Error: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
                 }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Sign In")
+            Text(if (isLogin) "Sign In" else "Sign Up")
+        }
+
+        // Toggle Link (Equivalent to your React toggle-link)
+        TextButton(onClick = { isLogin = !isLogin }) {
+            Text(if (isLogin) "Need an account? Register" else "Have an account? Login")
         }
     }
 }
